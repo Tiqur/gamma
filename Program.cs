@@ -1,2 +1,15 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using System;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        DatabaseSetup.InitializeDatabase();
+
+        string[] prefixes = { "http://localhost:3001/" };
+        HttpServer server = new HttpServer(prefixes);
+
+        server.Start();
+    }
+}
+
