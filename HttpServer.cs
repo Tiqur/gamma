@@ -41,49 +41,80 @@ public class HttpServer
         }
     }
 
-    private void ProcessRequest(HttpListenerContext context)
+private void HandleDataEndpoint(HttpListenerContext context)
+{
+    NameValueCollection queryString = context.Request.QueryString;
+    if (context.Request.HttpMethod == "GET")
     {
-        string responseString = "";
-
-        switch (context.Request.Url.AbsolutePath)
+        foreach (string key in queryString.AllKeys)
         {
-            case "/":
-                responseString = "<html><body><h1>Welcome to the Simple HTTP Server</h1></body></html>";
-                break;
-            case "/data":
-                NameValueCollection queryString = context.Request.QueryString;
-                foreach (string key in queryString.AllKeys)
+            string[] values = queryString.GetValues(key);
+            if (values != null)
+            {
+                foreach (string value in values)
                 {
-                    string[] values = queryString.GetValues(key);
-                    if (values != null)
-                    {
-                        foreach (string value in values)
-                        {
-                            Console.WriteLine($"Key: {key}, Value: {value}");
-                        }
-                    }
+                    Console.WriteLine($"Key: {key}, Value: {value}");
                 }
-
-
-
-                responseString = GetDatabaseData();
-                break;
-            case "/regen_seed":
-                seed = Guid.NewGuid().GetHashCode();
-                break;
-            default:
-                responseString = "<html><body><h1>404 - Not Found</h1></body></html>";
-                break;
+            }
         }
 
-        byte[] buffer = Encoding.UTF8.GetBytes(responseString);
-        context.Response.ContentLength64 = buffer.Length;
-        Stream output = context.Response.OutputStream;
-        output.Write(buffer, 0, buffer.Length);
-        output.Close();
+        string databaseData = GetDatabaseData();
+        WriteResponse(context, databaseData);
     }
+    else if (context.Request.HttpMethod == "POST")
+    {
+        // Add data to db
+        // Optionally return a response if needed
+        context.Response.StatusCode = 200;
+    }
+    else
+    {
+        context.Response.StatusCode = 405;
+        WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
+    }
+}
 
-    private string GetDatabaseData()
+private void HandleRegenSeedEndpoint(HttpListenerContext context)
+{
+    if (context.Request.HttpMethod == "POST")
+    {
+        context.Response.StatusCode = 200;
+        seed = Guid.NewGuid().GetHashCode();
+    }
+    else
+    {
+        context.Response.StatusCode = 405;
+        WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
+    }
+}
+
+private void WriteResponse(HttpListenerContext context, string responseString)
+{
+    byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+    context.Response.ContentLength64 = buffer.Length;
+    Stream output = context.Response.OutputStream;
+    output.Write(buffer, 0, buffer.Length);
+    output.Close();
+}
+
+private void ProcessRequest(HttpListenerContext context)
+{
+    switch (context.Request.Url.AbsolutePath)
+    {
+        case "/":
+            WriteResponse(context, "<html><body><h1>Welcome to the Simple HTTP Server</h1></body></html>");
+            break;
+        case "/data":
+            HandleDataEndpoint(context);
+            break;
+        case "/regen_seed":
+            HandleRegenSeedEndpoint(context);
+            break;
+        default:
+            WriteResponse(context, "<html><body><h1>404 - Not Found</h1></body></html>");
+            break;
+    }
+}    private string GetDatabaseData()
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("<html><body><h1>Data from SQLite Database</h1><ul>");
