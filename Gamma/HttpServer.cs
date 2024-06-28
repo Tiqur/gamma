@@ -272,6 +272,23 @@ public class HttpServer
     }
     private void ProcessRequest(HttpListenerContext context)
     {
+        HttpListenerRequest request = context.Request;
+        HttpListenerResponse response = context.Response;
+
+        // Set CORS headers
+        response.AddHeader("Access-Control-Allow-Origin", "*");
+        response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+        // Handle OPTIONS requests (CORS preflight)
+        if (request.HttpMethod == "OPTIONS")
+        {
+          response.StatusCode = (int)HttpStatusCode.OK;
+          response.Close();
+          return;
+        }
+
+
         switch (context.Request.Url.AbsolutePath)
         {
             case "/":

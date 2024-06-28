@@ -29,10 +29,18 @@ public class DatabaseSetup
 
     public static void SeedDatabase()
     {
-        AddCard("Front 1", "Back 1", "Tag1");
-        AddCard("Front 2", "Back 2", "Tag2");
-        AddCard("Front 3", "Back 3", "Tag3");
-        AddCard("Front 4", "Back 4", "Tag2");
+        Random random = new Random();
+
+        for (int i = 0; i < 200; i++)
+        {
+            int front = random.Next(1, 10000000);
+            int back = random.Next(1, 10000000);
+
+            string frontText = $"Front {i+1}";
+            string backText = $"Back {i+1}";
+
+            AddCard(frontText, backText, $"Tag{i%10}");
+        }
     }
 
     public static void AddCard(string front, string back, string tag)
