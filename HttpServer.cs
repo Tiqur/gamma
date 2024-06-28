@@ -220,12 +220,61 @@ public class HttpServer
         output.Close();
     }
 
+    private void HandleCardEndpoint(HttpListenerContext context)
+    {
+        if (context.Request.HttpMethod == "GET")
+        {
+            string tag = context.Request.QueryString["tag"];
+            
+            if (!string.IsNullOrEmpty(tag))
+            {
+                List<Card> cards = DatabaseSetup.GetCardsByTag(tag);
+
+                if (cards.Count > 0)
+                {
+                    // Select a random card
+                    Random random = new Random();
+                    Card randomCard = cards[random.Next(cards.Count)];
+
+                    // Create JSON for the random card
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append("{");
+                    sb.Append($"\"id\": {randomCard.Id}, ");
+                    sb.Append($"\"front\": \"{EscapeJsonString(randomCard.Front)}\", ");
+                    sb.Append($"\"back\": \"{EscapeJsonString(randomCard.Back)}\", ");
+                    sb.Append($"\"tag\": \"{EscapeJsonString(randomCard.Tag)}\" ");
+                    sb.Append("}");
+
+                    // Send JSON response
+                    WriteResponse(context, sb.ToString(), "application/json");
+                }
+                else
+                {
+                    context.Response.StatusCode = 404;
+                    WriteResponse(context, "<html><body><h1>404 - Not Found. No cards found for the specified tag.</h1></body></html>");
+                }
+            }
+            else
+            {
+                context.Response.StatusCode = 400;
+                WriteResponse(context, "<html><body><h1>400 - Bad Request. Tag parameter is required.</h1></body></html>");
+            }
+        }
+        else
+        {
+            context.Response.StatusCode = 405;
+            WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
+        }
+    }
     private void ProcessRequest(HttpListenerContext context)
     {
         switch (context.Request.Url.AbsolutePath)
         {
             case "/":
                 ServeIndexHtml(context);
+                break;
+            case "/card":
+                HandleCardEndpoint(context);
                 break;
             case "/data":
                 HandleDataEndpoint(context);
