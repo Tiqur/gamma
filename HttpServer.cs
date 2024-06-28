@@ -63,9 +63,77 @@ public class HttpServer
         }
         else if (context.Request.HttpMethod == "POST")
         {
-            // Add data to db
-            // Optionally return a response if needed
-            context.Response.StatusCode = 200;
+            using (var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding))
+            {
+                string requestBody = reader.ReadToEnd();
+                NameValueCollection postParams = System.Web.HttpUtility.ParseQueryString(requestBody);
+
+                string front = postParams["front"];
+                string back = postParams["back"];
+                string tagsString = postParams["tags"];
+                List<string> tags = new List<string>(tagsString.Split(','));
+
+                if (!string.IsNullOrEmpty(front) && !string.IsNullOrEmpty(back) && tags.Count > 0)
+                {
+                    DatabaseSetup.AddCard(front, back, tags);
+                    context.Response.StatusCode = 200;
+                    WriteResponse(context, "<html><body><h1>Card added successfully!</h1></body></html>");
+                }
+                else
+                {
+                    context.Response.StatusCode = 400;
+                    WriteResponse(context, "<html><body><h1>400 - Bad Request. All fields are required.</h1></body></html>");
+                }
+            }
+        }
+        else if (context.Request.HttpMethod == "PUT")
+        {
+            using (var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding))
+            {
+                string requestBody = reader.ReadToEnd();
+                NameValueCollection putParams = System.Web.HttpUtility.ParseQueryString(requestBody);
+
+                if (int.TryParse(putParams["id"], out int id))
+                {
+                    string front = putParams["front"];
+                    string back = putParams["back"];
+                    string tagsString = putParams["tags"];
+                    List<string> tags = new List<string>(tagsString.Split(','));
+
+                    if (!string.IsNullOrEmpty(front) && !string.IsNullOrEmpty(back) && tags.Count > 0)
+                    {
+                        DatabaseSetup.UpdateCard(id, front, back, tags);
+                        context.Response.StatusCode = 200;
+                        WriteResponse(context, "<html><body><h1>Card updated successfully!</h1></body></html>");
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = 400;
+                        WriteResponse(context, "<html><body><h1>400 - Bad Request. All fields are required.</h1></body></html>");
+                    }
+                }
+                else
+                {
+                    context.Response.StatusCode = 400;
+                    WriteResponse(context, "<html><body><h1>400 - Bad Request. Invalid ID.</h1></body></html>");
+                }
+            }
+        }
+        else if (context.Request.HttpMethod == "DELETE")
+        {
+            NameValueCollection queryStringParams = context.Request.QueryString;
+
+            if (int.TryParse(queryStringParams["id"], out int id))
+            {
+                DatabaseSetup.DeleteCard(id);
+                context.Response.StatusCode = 200;
+                WriteResponse(context, "<html><body><h1>Card deleted successfully!</h1></body></html>");
+            }
+            else
+            {
+                context.Response.StatusCode = 400;
+                WriteResponse(context, "<html><body><h1>400 - Bad Request. Invalid ID.</h1></body></html>");
+            }
         }
         else
         {
@@ -73,7 +141,6 @@ public class HttpServer
             WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
         }
     }
-
     private void HandleRegenSeedEndpoint(HttpListenerContext context)
     {
         if (context.Request.HttpMethod == "POST")
