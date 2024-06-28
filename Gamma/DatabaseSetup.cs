@@ -4,7 +4,7 @@ using System.Data.SQLite;
 
 public class DatabaseSetup
 {
-    private const string ConnectionString = "Data Source=sample.db;Version=3;";
+    private const string ConnectionString = "Data Source=data.db;Version=3;";
 
     public static void InitializeDatabase()
     {

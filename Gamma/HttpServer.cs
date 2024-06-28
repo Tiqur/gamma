@@ -8,7 +8,7 @@ using System.Collections.Specialized;
 public class HttpServer
 {
     private readonly HttpListener _listener = new HttpListener();
-    private const string ConnectionString = "Data Source=sample.db;Version=3;";
+    private const string ConnectionString = "Data Source=data.db;Version=3;";
     private int seed = Guid.NewGuid().GetHashCode();
 
     public HttpServer(string[] prefixes)
