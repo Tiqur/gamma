@@ -5,7 +5,7 @@ class Program
     static void Main(string[] args)
     {
         DatabaseSetup.InitializeDatabase();
-        //DatabaseSetup.SeedDatabase();
+        DatabaseSetup.SeedDatabase();
 
         string[] prefixes = { "http://+:2205/" };
         HttpServer server = new HttpServer(prefixes);

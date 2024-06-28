@@ -279,27 +279,35 @@
 
         function fetchCards() {
             fetch('/data')
-                .then(response => response.json()) // Parse response as JSON
+                .then(response => response.json())
                 .then(data => {
                     const cardsTable = document.getElementById('cardsTable');
-                    cardsTable.innerHTML = ''; // Clear existing table rows
+                    const fragment = document.createDocumentFragment(); // Use document fragment for efficiency
                     data.forEach(card => {
-                        const row = `
-                            <tr>
-                                <td>${card.id}</td>
-                                <td>${card.tag}</td>
-                                <td>${card.front}</td>
-                                <td>${card.back}</td>
-                                <td>
-                                    <button type="button" class="update-button" onclick="openModal(${card.id}, '${card.front}', '${card.back}', '${card.tag}')">Update</button>
-                                    <button type="button" class="delete-button" onclick="deleteCard(${card.id})">Delete</button>
-                                </td>
-                            </tr>
-                        `;
-                        cardsTable.innerHTML += row;
+                        const row = createCardRow(card);
+                        fragment.appendChild(row);
                     });
+                    cardsTable.innerHTML = ''; // Clear existing rows
+                    cardsTable.appendChild(fragment); // Append all rows at once
                 })
                 .catch(error => console.error('Error fetching cards:', error));
+        }
+
+        function createCardRow(card) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${card.id}</td>
+                <td>${card.tag}</td>
+                <td>${card.front}</td>
+                <td>${card.back}</td>
+                <td>
+                    <button type="button" class="update-button">Update</button>
+                    <button type="button" class="delete-button">Delete</button>
+                </td>
+            `;
+            row.querySelector('.update-button').addEventListener('click', () => openModal(card.id, card.front, card.back, card.tag));
+            row.querySelector('.delete-button').addEventListener('click', () => deleteCard(card.id));
+            return row;
         }
 
         function filterCards() {

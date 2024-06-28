@@ -31,7 +31,7 @@ public class DatabaseSetup
     {
         Random random = new Random();
 
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 1000; i++)
         {
             int front = random.Next(1, 10000000);
             int back = random.Next(1, 10000000);
