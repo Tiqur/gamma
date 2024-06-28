@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQLite Card Management</title>
     <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box; /* Include padding and border in the element's total width */
+        }
 
         /* OneDark Theme */
         body {
@@ -41,6 +46,17 @@
             border: 1px solid #4b5263;
             background-color: #3e4451;
             color: #abb2bf;
+        }
+        form textarea {
+            padding: 10px;
+            margin-top: 5px;
+            font-size: 14px;
+            border: 1px solid #4b5263;
+            background-color: #3e4451;
+            color: #abb2bf;
+            width: 100%;
+            min-height: 100px;
+            resize: vertical;
         }
         form button {
             padding: 10px 20px;
@@ -173,13 +189,13 @@
 
     <h2>Add New Card</h2>
     <form id="addCardForm">
-        <label for="newFront">Front:</label>
-        <input type="text" id="newFront" /><br>
-        <label for="newBack">Back:</label>
-        <input type="text" id="newBack" /><br>
         <label for="newTag">Tag:</label>
         <input type="text" id="newTag" /><br>
-        <button type="button" style="background" onclick="addCard()">Add Card</button>
+        <label for="newFront">Front:</label>
+        <textarea id="newFront" rows="4"></textarea><br>
+        <label for="newBack">Back:</label>
+        <textarea id="newBack" rows="4"></textarea><br>
+        <button type="button" onclick="addCard()">Add Card</button>
     </form>
 
     <!-- The Modal -->
