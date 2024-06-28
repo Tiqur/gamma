@@ -196,6 +196,17 @@
             </form>
         </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <p>Are you sure you want to delete this card?</p>
+            <button onclick="confirmDelete()">Yes</button>
+            <button onclick="closeConfirmation()">No</button>
+        </div>
+    </div>
+
+    <!-- Snackbar Container -->
     <div id="snackbarContainer" class="snackbar-container"></div>
 
     <script>
@@ -269,6 +280,15 @@
         }
 
         function deleteCard(id) {
+            const confirmationModal = document.getElementById('confirmationModal');
+            confirmationModal.style.display = 'block';
+
+            // Store the ID in a hidden field or variable
+            confirmationModal.dataset.cardId = id;
+        }
+
+        function confirmDelete() {
+            const id = document.getElementById('confirmationModal').dataset.cardId;
             const data = `id=${id}`;
 
             fetch('/data', {
@@ -285,6 +305,13 @@
                 }
             })
             .catch(error => console.error('Error deleting card:', error));
+
+            closeConfirmation(); // Close the confirmation modal after deleting
+        }
+
+        function closeConfirmation() {
+            const confirmationModal = document.getElementById('confirmationModal');
+            confirmationModal.style.display = 'none';
         }
 
         function addCard() {
