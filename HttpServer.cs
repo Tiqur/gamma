@@ -3,11 +3,13 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Data.SQLite;
+using System.Collections.Specialized;
 
 public class HttpServer
 {
     private readonly HttpListener _listener = new HttpListener();
     private const string ConnectionString = "Data Source=sample.db;Version=3;";
+    private int seed = Guid.NewGuid().GetHashCode();
 
     public HttpServer(string[] prefixes)
     {
@@ -49,7 +51,25 @@ public class HttpServer
                 responseString = "<html><body><h1>Welcome to the Simple HTTP Server</h1></body></html>";
                 break;
             case "/data":
+                NameValueCollection queryString = context.Request.QueryString;
+                foreach (string key in queryString.AllKeys)
+                {
+                    string[] values = queryString.GetValues(key);
+                    if (values != null)
+                    {
+                        foreach (string value in values)
+                        {
+                            Console.WriteLine($"Key: {key}, Value: {value}");
+                        }
+                    }
+                }
+
+
+
                 responseString = GetDatabaseData();
+                break;
+            case "/regen_seed":
+                seed = Guid.NewGuid().GetHashCode();
                 break;
             default:
                 responseString = "<html><body><h1>404 - Not Found</h1></body></html>";
