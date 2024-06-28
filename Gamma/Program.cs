@@ -7,7 +7,7 @@ class Program
         DatabaseSetup.InitializeDatabase();
         DatabaseSetup.SeedDatabase();
 
-        string[] prefixes = { "http://localhost:2205/" };
+        string[] prefixes = { "http://+:2205/" };
         HttpServer server = new HttpServer(prefixes);
 
         server.Start();
