@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQLite Card Management</title>
     <style>
+
         /* OneDark Theme */
         body {
             background-color: #282c34;
@@ -113,6 +114,42 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        .snackbar-container {
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            width: 100%; /* Ensures full width stacking */
+            display: flex;
+            flex-direction: column-reverse; /* Stack messages from bottom to top */
+            align-items: center;
+        }
+
+        .snackbar {
+            visibility: hidden;
+            min-width: 250px;
+            margin: 10px; /* Add margin between messages */
+            background-color: #61afef;
+            color: #282c34;
+            text-align: center;
+            border-radius: 2px;
+            padding: 16px;
+            position: relative; /* Relative to snackbar-container */
+            animation: slideIn 0.5s ease-in-out, fadeOut 0.5s ease-in-out 2.5s; /* Slide in and fade out animation */
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
     </style>
 </head>
 <body>
@@ -140,7 +177,7 @@
         <input type="text" id="newBack" /><br>
         <label for="newTag">Tag:</label>
         <input type="text" id="newTag" /><br>
-        <button type="button" onclick="addCard()">Add Card</button>
+        <button type="button" style="background" onclick="addCard()">Add Card</button>
     </form>
 
     <!-- The Modal -->
@@ -159,6 +196,7 @@
             </form>
         </div>
     </div>
+    <div id="snackbarContainer" class="snackbar-container"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', fetchCards);
@@ -220,11 +258,11 @@
             })
             .then(response => {
                 if (response.status === 200) {
-                    alert('Card updated successfully!');
+                    showSnackbar('Card updated successfully!');
                     closeModal();
                     fetchCards();
                 } else {
-                    alert('Error updating card');
+                    showSnackbar('Error updating card', '#e06c75');
                 }
             })
             .catch(error => console.error('Error updating card:', error));
@@ -240,10 +278,10 @@
             })
             .then(response => {
                 if (response.status === 200) {
-                    alert('Card deleted successfully!');
+                    showSnackbar('Card deleted successfully!');
                     fetchCards();
                 } else {
-                    alert('Error deleting card');
+                    showSnackbar('Error deleting card', '#e06c75');
                 }
             })
             .catch(error => console.error('Error deleting card:', error));
@@ -262,14 +300,39 @@
             })
             .then(response => {
                 if (response.status === 200) {
-                    alert('Card added successfully!');
+                    showSnackbar('Card added successfully!');
                     fetchCards();
                 } else {
-                    alert('Error adding card');
+                    showSnackbar('Error adding card', '#e06c75');
                 }
             })
             .catch(error => console.error('Error adding card:', error));
         }
+
+        function showSnackbar(message, color = '#61afef') {
+            const snackbarContainer = document.getElementById('snackbarContainer');
+            
+            // Create snackbar element
+            const snackbar = document.createElement('div');
+            snackbar.className = 'snackbar';
+            snackbar.style.backgroundColor = color;
+            snackbar.textContent = message;
+
+            // Append snackbar to container
+            snackbarContainer.appendChild(snackbar);
+
+            // Trigger slide-in animation
+            setTimeout(() => {
+                snackbar.style.visibility = 'visible';
+                snackbar.style.animation = 'slideIn 0.5s ease-in-out, fadeOut 0.5s ease-in-out 2.5s'; // Reset animation
+            }, 100); // Delay to ensure visibility change is applied after appending
+
+            // Automatically remove snackbar after animation completes
+            setTimeout(() => {
+                snackbar.remove();
+            }, 3000);
+        }
+
     </script>
 </body>
 </html>
