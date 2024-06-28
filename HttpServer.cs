@@ -198,10 +198,14 @@ public class HttpServer
     }
     private void HandleRegenSeedEndpoint(HttpListenerContext context)
     {
-        if (context.Request.HttpMethod == "POST")
+        if (context.Request.HttpMethod == "GET")
         {
             // Generate new seed
             seed = Guid.NewGuid().GetHashCode();
+
+            // Respond with success message
+            context.Response.StatusCode = 200;
+            WriteResponse(context, "<html><body><h1>200 - Seed Successfully Regenerated</h1></body></html>");
         }
         else
         {
