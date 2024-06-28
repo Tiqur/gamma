@@ -12,13 +12,13 @@ public class DatabaseSetup
         {
             conn.Open();
 
-            // Create Cards table
+            // Create Cards table with a single tag column
             string createTableQuery = @"
                 CREATE TABLE IF NOT EXISTS Cards (
                     id INTEGER PRIMARY KEY,
                     front TEXT,
                     back TEXT,
-                    tags TEXT
+                    tag TEXT
                 )";
             using (SQLiteCommand cmd = new SQLiteCommand(createTableQuery, conn))
             {
@@ -29,23 +29,23 @@ public class DatabaseSetup
 
     public static void SeedDatabase()
     {
-        AddCard("Front 1", "Back 1", ["Tag1", "Tag2", "Tag3"]);
-        AddCard("Front 2", "Back 2", ["Tag2", "Tag3"]);
-        AddCard("Front 3", "Back 3", ["Tag1", "Tag2"]);
-        AddCard("Front 4", "Back 4", ["Tag3"]);
+        AddCard("Front 1", "Back 1", "Tag1");
+        AddCard("Front 2", "Back 2", "Tag2");
+        AddCard("Front 3", "Back 3", "Tag3");
+        AddCard("Front 4", "Back 4", "Tag2");
     }
 
-    public static void AddCard(string front, string back, List<string> tags)
+    public static void AddCard(string front, string back, string tag)
     {
         using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
         {
             conn.Open();
-            string insertQuery = "INSERT INTO Cards (front, back, tags) VALUES (@Front, @Back, @Tags)";
+            string insertQuery = "INSERT INTO Cards (front, back, tag) VALUES (@Front, @Back, @Tag)";
             using (SQLiteCommand cmd = new SQLiteCommand(insertQuery, conn))
             {
                 cmd.Parameters.AddWithValue("@Front", front);
                 cmd.Parameters.AddWithValue("@Back", back);
-                cmd.Parameters.AddWithValue("@Tags", string.Join(",", tags)); // Assuming tags are stored as comma-separated values
+                cmd.Parameters.AddWithValue("@Tag", tag);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -57,7 +57,7 @@ public class DatabaseSetup
         using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
         {
             conn.Open();
-            string selectQuery = "SELECT id, front, back, tags FROM Cards";
+            string selectQuery = "SELECT id, front, back, tag FROM Cards";
             using (SQLiteCommand cmd = new SQLiteCommand(selectQuery, conn))
             {
                 using (SQLiteDataReader reader = cmd.ExecuteReader())
@@ -67,9 +67,8 @@ public class DatabaseSetup
                         int id = reader.GetInt32(0);
                         string front = reader.GetString(1);
                         string back = reader.GetString(2);
-                        string tags = reader.GetString(3);
-                        List<string> tagList = new List<string>(tags.Split(',')); // Assuming tags are stored as comma-separated values
-                        cards.Add(new Card { Id = id, Front = front, Back = back, Tags = tagList });
+                        string tag = reader.GetString(3);
+                        cards.Add(new Card { Id = id, Front = front, Back = back, Tag = tag });
                     }
                 }
             }
@@ -77,17 +76,43 @@ public class DatabaseSetup
         return cards;
     }
 
-    public static void UpdateCard(int id, string front, string back, List<string> tags)
+    public static List<Card> GetCardsByTag(string tag)
+    {
+        List<Card> cards = new List<Card>();
+        using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+            string selectQuery = "SELECT id, front, back, tag FROM Cards WHERE tag = @Tag";
+            using (SQLiteCommand cmd = new SQLiteCommand(selectQuery, conn))
+            {
+                cmd.Parameters.AddWithValue("@Tag", tag);
+                using (SQLiteDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        int id = reader.GetInt32(0);
+                        string front = reader.GetString(1);
+                        string back = reader.GetString(2);
+                        string retrievedTag = reader.GetString(3);
+                        cards.Add(new Card { Id = id, Front = front, Back = back, Tag = retrievedTag });
+                    }
+                }
+            }
+        }
+        return cards;
+    }
+
+    public static void UpdateCard(int id, string front, string back, string tag)
     {
         using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
         {
             conn.Open();
-            string updateQuery = "UPDATE Cards SET front = @Front, back = @Back, tags = @Tags WHERE id = @Id";
+            string updateQuery = "UPDATE Cards SET front = @Front, back = @Back, tag = @Tag WHERE id = @Id";
             using (SQLiteCommand cmd = new SQLiteCommand(updateQuery, conn))
             {
                 cmd.Parameters.AddWithValue("@Front", front);
                 cmd.Parameters.AddWithValue("@Back", back);
-                cmd.Parameters.AddWithValue("@Tags", string.Join(",", tags)); // Assuming tags are stored as comma-separated values
+                cmd.Parameters.AddWithValue("@Tag", tag);
                 cmd.Parameters.AddWithValue("@Id", id);
                 cmd.ExecuteNonQuery();
             }
@@ -114,6 +139,6 @@ public class Card
     public int Id { get; set; }
     public string Front { get; set; }
     public string Back { get; set; }
-    public List<string> Tags { get; set; }
+    public string Tag { get; set; }
 }
 

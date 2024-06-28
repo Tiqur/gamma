@@ -103,14 +103,7 @@ public class HttpServer
                 sb.Append($"\"id\": {card.Id}, ");
                 sb.Append($"\"front\": \"{EscapeJsonString(card.Front)}\", ");
                 sb.Append($"\"back\": \"{EscapeJsonString(card.Back)}\", ");
-                sb.Append("\"tags\": [");
-                foreach (var tag in card.Tags)
-                {
-                    sb.Append($"\"{EscapeJsonString(tag)}\"");
-                    if (tag != card.Tags[card.Tags.Count - 1])
-                        sb.Append(", ");
-                }
-                sb.Append("]");
+                sb.Append($"\"tag\": \"{EscapeJsonString(card.Tag)}\" ");
                 sb.Append("}");
 
                 if (card != cards[cards.Count - 1])
@@ -130,12 +123,11 @@ public class HttpServer
 
                 string front = postParams["front"];
                 string back = postParams["back"];
-                string tagsString = postParams["tags"];
-                List<string> tags = new List<string>(tagsString.Split(','));
+                string tag = postParams["tag"];
 
-                if (!string.IsNullOrEmpty(front) && !string.IsNullOrEmpty(back) && tags.Count > 0)
+                if (!string.IsNullOrEmpty(front) && !string.IsNullOrEmpty(back))
                 {
-                    DatabaseSetup.AddCard(front, back, tags);
+                    DatabaseSetup.AddCard(front, back, tag);
                     context.Response.StatusCode = 200;
                     WriteResponse(context, "<html><body><h1>Card added successfully!</h1></body></html>");
                 }
@@ -157,12 +149,11 @@ public class HttpServer
                 {
                     string front = putParams["front"];
                     string back = putParams["back"];
-                    string tagsString = putParams["tags"];
-                    List<string> tags = new List<string>(tagsString.Split(','));
+                    string tag = putParams["tag"];
 
-                    if (!string.IsNullOrEmpty(front) && !string.IsNullOrEmpty(back) && tags.Count > 0)
+                    if (!string.IsNullOrEmpty(front) && !string.IsNullOrEmpty(back))
                     {
-                        DatabaseSetup.UpdateCard(id, front, back, tags);
+                        DatabaseSetup.UpdateCard(id, front, back, tag);
                         context.Response.StatusCode = 200;
                         WriteResponse(context, "<html><body><h1>Card updated successfully!</h1></body></html>");
                     }

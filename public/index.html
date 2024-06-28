@@ -121,9 +121,9 @@
         <thead>
             <tr>
                 <th>ID</th>
+                <th>Tag</th>
                 <th>Front</th>
                 <th>Back</th>
-                <th>Tags</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -138,8 +138,8 @@
         <input type="text" id="newFront" /><br>
         <label for="newBack">Back:</label>
         <input type="text" id="newBack" /><br>
-        <label for="newTags">Tags (comma separated):</label>
-        <input type="text" id="newTags" /><br>
+        <label for="newTag">Tag:</label>
+        <input type="text" id="newTag" /><br>
         <button type="button" onclick="addCard()">Add Card</button>
     </form>
 
@@ -153,8 +153,8 @@
                 <input type="text" id="updateFront" /><br>
                 <label for="updateBack">Back:</label>
                 <input type="text" id="updateBack" /><br>
-                <label for="updateTags">Tags (comma separated):</label>
-                <input type="text" id="updateTags" /><br>
+                <label for="updateTag">Tag:</label>
+                <input type="text" id="updateTag" /><br>
                 <button type="button" onclick="submitUpdate()">Update Card</button>
             </form>
         </div>
@@ -170,15 +170,14 @@
                     const cardsTable = document.getElementById('cardsTable');
                     cardsTable.innerHTML = ''; // Clear existing table rows
                     data.forEach(card => {
-                        const tags = card.tags.join(', ');
                         const row = `
                             <tr>
                                 <td>${card.id}</td>
+                                <td>${card.tag}</td>
                                 <td>${card.front}</td>
                                 <td>${card.back}</td>
-                                <td>${tags}</td>
                                 <td>
-                                    <button type="button" class="update-button" onclick="openModal(${card.id}, '${card.front}', '${card.back}', '${tags}')">Update</button>
+                                    <button type="button" class="update-button" onclick="openModal(${card.id}, '${card.front}', '${card.back}', '${card.tag}')">Update</button>
                                     <button type="button" class="delete-button" onclick="deleteCard(${card.id})">Delete</button>
                                 </td>
                             </tr>
@@ -196,7 +195,7 @@
             // Populate fields with current card data
             document.getElementById('updateFront').value = front;
             document.getElementById('updateBack').value = back;
-            document.getElementById('updateTags').value = tags;
+            document.getElementById('updateTag').value = tags;
 
             // Store the ID in a hidden field or variable
             modal.dataset.cardId = id;
@@ -211,8 +210,8 @@
             const id = document.getElementById('updateModal').dataset.cardId;
             const front = document.getElementById('updateFront').value;
             const back = document.getElementById('updateBack').value;
-            const tags = document.getElementById('updateTags').value;
-            const data = `id=${id}&front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tags=${encodeURIComponent(tags)}`;
+            const tag = document.getElementById('updateTag').value;
+            const data = `id=${id}&front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tag=${encodeURIComponent(tag)}`;
 
             fetch('/data', {
                 method: 'PUT',
@@ -253,8 +252,8 @@
         function addCard() {
             const front = document.getElementById('newFront').value;
             const back = document.getElementById('newBack').value;
-            const tags = document.getElementById('newTags').value;
-            const data = `front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tags=${encodeURIComponent(tags)}`;
+            const tag = document.getElementById('newTag').value;
+            const data = `front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tag=${encodeURIComponent(tag)}`;
 
             fetch('/data', {
                 method: 'POST',
