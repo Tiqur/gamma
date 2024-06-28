@@ -1,6 +1,6 @@
-*.db
-bin/
-obj/
+*/*.db
+*/bin/
+*/obj/
 
 
 *.swp
