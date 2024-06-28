@@ -39,7 +39,7 @@
             margin-top: 10px;
             font-weight: bold;
         }
-        form input[type="text"] {
+        input[type="text"] {
             padding: 10px;
             margin-top: 5px;
             font-size: 14px;
@@ -158,6 +158,11 @@
             animation: slideIn 0.5s ease-in-out, fadeOut 0.5s ease-in-out 2.5s; /* Slide in and fade out animation */
         }
 
+        #filterTag {
+          margin-bottom: 1.5rem;
+          margin-right: 2rem;
+        }
+
         @keyframes slideIn {
             from { transform: translateY(100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -172,6 +177,15 @@
 </head>
 <body>
     <h1>Data from SQLite Database</h1>
+
+    <!-- Filter by tag -->
+    <label for="filterTag">Filter by Tag:</label>
+    <input type="text" id="filterTag" oninput="filterCards()" placeholder="Enter tag name...">
+
+    <!-- Filter by content -->
+    <label for="filterContent">Filter by Content:</label>
+    <input type="text" id="filterContent" oninput="filterCards()" placeholder="Enter content...">
+    
     <table>
         <thead>
             <tr>
@@ -253,6 +267,31 @@
                     });
                 })
                 .catch(error => console.error('Error fetching cards:', error));
+        }
+
+        function filterCards() {
+            const filterTagValue = document.getElementById('filterTag').value.toLowerCase();
+            const filterContentValue = document.getElementById('filterContent').value.toLowerCase();
+            const rows = document.querySelectorAll('#cardsTable tr');
+
+            rows.forEach(row => {
+                const tag = row.getElementsByTagName('td')[1];
+                const front = row.getElementsByTagName('td')[2];
+                const back = row.getElementsByTagName('td')[3];
+
+                if (tag && front && back) {
+                    const tagText = tag.textContent.toLowerCase();
+                    const frontText = front.textContent.toLowerCase();
+                    const backText = back.textContent.toLowerCase();
+
+                    if (tagText.includes(filterTagValue) &&
+                        (frontText.includes(filterContentValue) || backText.includes(filterContentValue))) {
+                        row.style.display = ''; // Show matching rows
+                    } else {
+                        row.style.display = 'none'; // Hide non-matching rows
+                    }
+                }
+            });
         }
 
         function openModal(id, front, back, tag) {
