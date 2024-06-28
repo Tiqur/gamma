@@ -41,80 +41,81 @@ public class HttpServer
         }
     }
 
-private void HandleDataEndpoint(HttpListenerContext context)
-{
-    NameValueCollection queryString = context.Request.QueryString;
-    if (context.Request.HttpMethod == "GET")
+    private void HandleDataEndpoint(HttpListenerContext context)
     {
-        foreach (string key in queryString.AllKeys)
+        NameValueCollection queryString = context.Request.QueryString;
+        if (context.Request.HttpMethod == "GET")
         {
-            string[] values = queryString.GetValues(key);
-            if (values != null)
+            foreach (string key in queryString.AllKeys)
             {
-                foreach (string value in values)
+                string[] values = queryString.GetValues(key);
+                if (values != null)
                 {
-                    Console.WriteLine($"Key: {key}, Value: {value}");
+                    foreach (string value in values)
+                    {
+                        Console.WriteLine($"Key: {key}, Value: {value}");
+                    }
                 }
             }
+
+            string databaseData = GetDatabaseData();
+            WriteResponse(context, databaseData);
         }
+        else if (context.Request.HttpMethod == "POST")
+        {
+            // Add data to db
+            // Optionally return a response if needed
+            context.Response.StatusCode = 200;
+        }
+        else
+        {
+            context.Response.StatusCode = 405;
+            WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
+        }
+    }
 
-        string databaseData = GetDatabaseData();
-        WriteResponse(context, databaseData);
-    }
-    else if (context.Request.HttpMethod == "POST")
+    private void HandleRegenSeedEndpoint(HttpListenerContext context)
     {
-        // Add data to db
-        // Optionally return a response if needed
-        context.Response.StatusCode = 200;
+        if (context.Request.HttpMethod == "POST")
+        {
+            context.Response.StatusCode = 200;
+            seed = Guid.NewGuid().GetHashCode();
+        }
+        else
+        {
+            context.Response.StatusCode = 405;
+            WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
+        }
     }
-    else
-    {
-        context.Response.StatusCode = 405;
-        WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
-    }
-}
 
-private void HandleRegenSeedEndpoint(HttpListenerContext context)
-{
-    if (context.Request.HttpMethod == "POST")
+    private void WriteResponse(HttpListenerContext context, string responseString)
     {
-        context.Response.StatusCode = 200;
-        seed = Guid.NewGuid().GetHashCode();
+        byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+        context.Response.ContentLength64 = buffer.Length;
+        Stream output = context.Response.OutputStream;
+        output.Write(buffer, 0, buffer.Length);
+        output.Close();
     }
-    else
-    {
-        context.Response.StatusCode = 405;
-        WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
-    }
-}
 
-private void WriteResponse(HttpListenerContext context, string responseString)
-{
-    byte[] buffer = Encoding.UTF8.GetBytes(responseString);
-    context.Response.ContentLength64 = buffer.Length;
-    Stream output = context.Response.OutputStream;
-    output.Write(buffer, 0, buffer.Length);
-    output.Close();
-}
-
-private void ProcessRequest(HttpListenerContext context)
-{
-    switch (context.Request.Url.AbsolutePath)
+    private void ProcessRequest(HttpListenerContext context)
     {
-        case "/":
-            WriteResponse(context, "<html><body><h1>Welcome to the Simple HTTP Server</h1></body></html>");
-            break;
-        case "/data":
-            HandleDataEndpoint(context);
-            break;
-        case "/regen_seed":
-            HandleRegenSeedEndpoint(context);
-            break;
-        default:
-            WriteResponse(context, "<html><body><h1>404 - Not Found</h1></body></html>");
-            break;
+        switch (context.Request.Url.AbsolutePath)
+        {
+            case "/":
+                WriteResponse(context, "<html><body><h1>Welcome to the Simple HTTP Server</h1></body></html>");
+                break;
+            case "/data":
+                HandleDataEndpoint(context);
+                break;
+            case "/regen_seed":
+                HandleRegenSeedEndpoint(context);
+                break;
+            default:
+                WriteResponse(context, "<html><body><h1>404 - Not Found</h1></body></html>");
+                break;
+        }
     }
-}    private string GetDatabaseData()
+    private string GetDatabaseData()
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("<html><body><h1>Data from SQLite Database</h1><ul>");
@@ -122,13 +123,23 @@ private void ProcessRequest(HttpListenerContext context)
         using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
         {
             conn.Open();
-            string query = "SELECT * FROM SampleTable";
+            string query = "SELECT id, front, back, tags FROM Cards";
             using (SQLiteCommand cmd = new SQLiteCommand(query, conn))
             using (SQLiteDataReader reader = cmd.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    sb.Append("<li>").Append(reader["Data"]).Append("</li>");
+                    int id = reader.GetInt32(0);
+                    string front = reader.GetString(1);
+                    string back = reader.GetString(2);
+                    string tags = reader.GetString(3);
+
+                    sb.Append("<li>")
+                      .Append("<strong>ID:</strong> ").Append(id).Append("<br>")
+                      .Append("<strong>Front:</strong> ").Append(front).Append("<br>")
+                      .Append("<strong>Back:</strong> ").Append(back).Append("<br>")
+                      .Append("<strong>Tags:</strong> ").Append(tags)
+                      .Append("</li><br>");
                 }
             }
         }
