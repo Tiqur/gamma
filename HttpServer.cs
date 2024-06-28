@@ -200,7 +200,7 @@ public class HttpServer
     {
         if (context.Request.HttpMethod == "POST")
         {
-            context.Response.StatusCode = 200;
+            // Generate new seed
             seed = Guid.NewGuid().GetHashCode();
         }
         else
@@ -233,7 +233,7 @@ public class HttpServer
                 if (cards.Count > 0)
                 {
                     // Select a random card
-                    Random random = new Random();
+                    Random random = new Random(seed);
                     Card randomCard = cards[random.Next(cards.Count)];
 
                     // Create JSON for the random card
@@ -279,7 +279,7 @@ public class HttpServer
             case "/data":
                 HandleDataEndpoint(context);
                 break;
-            case "/regen_seed":
+            case "/seed":
                 HandleRegenSeedEndpoint(context);
                 break;
             default:
