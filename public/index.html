@@ -5,9 +5,114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQLite Card Management</title>
     <style>
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        /* OneDark Theme */
+        body {
+            background-color: #282c34;
+            color: #abb2bf;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 20px;
+        }
+        th, td { 
+            border: 1px solid #4b5263; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #3e4451; 
+            color: #abb2bf;
+        }
+        form label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        form input[type="text"] {
+            padding: 10px;
+            margin-top: 5px;
+            font-size: 14px;
+            border: 1px solid #4b5263;
+            background-color: #3e4451;
+            color: #abb2bf;
+        }
+        form button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            background-color: #61afef;
+            color: #282c34;
+            border: none;
+            cursor: pointer;
+        }
+        button {
+            padding: 4px 8px;
+            background-color: #61afef;
+            color: #282c34;
+            border: none;
+            cursor: pointer;
+            color: #282c34;
+        }
+        form button:hover {
+            background-color: #528bff;
+        }
+
+        /* Update button (blue) */
+        button.update-button {
+            background-color: #61afef;
+            color: #282c34;
+        }
+
+        /* Delete button (red) */
+        button.delete-button {
+            background-color: #e06c75;
+            color: #282c34;
+        }
+
+        /* Add button (green) */
+        button.add-button {
+            background-color: #98c379;
+            color: #282c34;
+        }
+
+        /* Modal Styling */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #282c34;
+            margin: 5% auto; /* 5% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less */
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -29,14 +134,31 @@
 
     <h2>Add New Card</h2>
     <form id="addCardForm">
-        <label>Front:</label><br>
+        <label for="newFront">Front:</label>
         <input type="text" id="newFront" /><br>
-        <label>Back:</label><br>
+        <label for="newBack">Back:</label>
         <input type="text" id="newBack" /><br>
-        <label>Tags (comma separated):</label><br>
+        <label for="newTags">Tags (comma separated):</label>
         <input type="text" id="newTags" /><br>
         <button type="button" onclick="addCard()">Add Card</button>
     </form>
+
+    <!-- The Modal -->
+    <div id="updateModal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <form id="updateCardForm">
+                <label for="updateFront">Front:</label>
+                <input type="text" id="updateFront" /><br>
+                <label for="updateBack">Back:</label>
+                <input type="text" id="updateBack" /><br>
+                <label for="updateTags">Tags (comma separated):</label>
+                <input type="text" id="updateTags" /><br>
+                <button type="button" onclick="submitUpdate()">Update Card</button>
+            </form>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', fetchCards);
@@ -56,11 +178,8 @@
                                 <td>${card.back}</td>
                                 <td>${tags}</td>
                                 <td>
-                                    <input type="text" id="front-${card.id}" value="${card.front}" />
-                                    <input type="text" id="back-${card.id}" value="${card.back}" />
-                                    <input type="text" id="tags-${card.id}" value="${tags}" />
-                                    <button type="button" onclick="updateCard(${card.id})">Update</button>
-                                    <button type="button" onclick="deleteCard(${card.id})">Delete</button>
+                                    <button type="button" class="update-button" onclick="openModal(${card.id}, '${card.front}', '${card.back}', '${tags}')">Update</button>
+                                    <button type="button" class="delete-button" onclick="deleteCard(${card.id})">Delete</button>
                                 </td>
                             </tr>
                         `;
@@ -70,10 +189,29 @@
                 .catch(error => console.error('Error fetching cards:', error));
         }
 
-        function updateCard(id) {
-            const front = document.getElementById('front-' + id).value;
-            const back = document.getElementById('back-' + id).value;
-            const tags = document.getElementById('tags-' + id).value;
+        function openModal(id, front, back, tags) {
+            const modal = document.getElementById('updateModal');
+            modal.style.display = 'block';
+
+            // Populate fields with current card data
+            document.getElementById('updateFront').value = front;
+            document.getElementById('updateBack').value = back;
+            document.getElementById('updateTags').value = tags;
+
+            // Store the ID in a hidden field or variable
+            modal.dataset.cardId = id;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('updateModal');
+            modal.style.display = 'none';
+        }
+
+        function submitUpdate() {
+            const id = document.getElementById('updateModal').dataset.cardId;
+            const front = document.getElementById('updateFront').value;
+            const back = document.getElementById('updateBack').value;
+            const tags = document.getElementById('updateTags').value;
             const data = `id=${id}&front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tags=${encodeURIComponent(tags)}`;
 
             fetch('/data', {
@@ -84,6 +222,7 @@
             .then(response => {
                 if (response.status === 200) {
                     alert('Card updated successfully!');
+                    closeModal();
                     fetchCards();
                 } else {
                     alert('Error updating card');
