@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Card Management</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Data from SQLite Database</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Front</th>
+                <th>Back</th>
+                <th>Tags</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="cardsTable">
+            <!-- Cards will be dynamically populated here -->
+        </tbody>
+    </table>
+
+    <h2>Add New Card</h2>
+    <form id="addCardForm">
+        <label>Front:</label><br>
+        <input type="text" id="newFront" /><br>
+        <label>Back:</label><br>
+        <input type="text" id="newBack" /><br>
+        <label>Tags (comma separated):</label><br>
+        <input type="text" id="newTags" /><br>
+        <button type="button" onclick="addCard()">Add Card</button>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchCards);
+
+        function fetchCards() {
+            fetch('/data')
+                .then(response => response.json()) // Parse response as JSON
+                .then(data => {
+                    const cardsTable = document.getElementById('cardsTable');
+                    cardsTable.innerHTML = ''; // Clear existing table rows
+                    data.forEach(card => {
+                        const tags = card.tags.join(', ');
+                        const row = `
+                            <tr>
+                                <td>${card.id}</td>
+                                <td>${card.front}</td>
+                                <td>${card.back}</td>
+                                <td>${tags}</td>
+                                <td>
+                                    <input type="text" id="front-${card.id}" value="${card.front}" />
+                                    <input type="text" id="back-${card.id}" value="${card.back}" />
+                                    <input type="text" id="tags-${card.id}" value="${tags}" />
+                                    <button type="button" onclick="updateCard(${card.id})">Update</button>
+                                    <button type="button" onclick="deleteCard(${card.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                        cardsTable.innerHTML += row;
+                    });
+                })
+                .catch(error => console.error('Error fetching cards:', error));
+        }
+
+        function updateCard(id) {
+            const front = document.getElementById('front-' + id).value;
+            const back = document.getElementById('back-' + id).value;
+            const tags = document.getElementById('tags-' + id).value;
+            const data = `id=${id}&front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tags=${encodeURIComponent(tags)}`;
+
+            fetch('/data', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: data
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('Card updated successfully!');
+                    fetchCards();
+                } else {
+                    alert('Error updating card');
+                }
+            })
+            .catch(error => console.error('Error updating card:', error));
+        }
+
+        function deleteCard(id) {
+            const data = `id=${id}`;
+
+            fetch('/data', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: data
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('Card deleted successfully!');
+                    fetchCards();
+                } else {
+                    alert('Error deleting card');
+                }
+            })
+            .catch(error => console.error('Error deleting card:', error));
+        }
+
+        function addCard() {
+            const front = document.getElementById('newFront').value;
+            const back = document.getElementById('newBack').value;
+            const tags = document.getElementById('newTags').value;
+            const data = `front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tags=${encodeURIComponent(tags)}`;
+
+            fetch('/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: data
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('Card added successfully!');
+                    fetchCards();
+                } else {
+                    alert('Error adding card');
+                }
+            })
+            .catch(error => console.error('Error adding card:', error));
+        }
+    </script>
+</body>
+</html>
+

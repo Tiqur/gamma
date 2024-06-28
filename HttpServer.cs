@@ -41,25 +41,85 @@ public class HttpServer
         }
     }
 
+    private string EscapeJsonString(string input)
+    {
+        if (input == null)
+            return null;
+
+        StringBuilder sb = new StringBuilder();
+        foreach (char c in input)
+        {
+            switch (c)
+            {
+                case '\"':
+                    sb.Append("\\\"");
+                    break;
+                case '\\':
+                    sb.Append("\\\\");
+                    break;
+                case '\b':
+                    sb.Append("\\b");
+                    break;
+                case '\f':
+                    sb.Append("\\f");
+                    break;
+                case '\n':
+                    sb.Append("\\n");
+                    break;
+                case '\r':
+                    sb.Append("\\r");
+                    break;
+                case '\t':
+                    sb.Append("\\t");
+                    break;
+                default:
+                    if (char.IsControl(c))
+                    {
+                        sb.Append(string.Format("\\u{0:X4}", (int)c));
+                    }
+                    else
+                    {
+                        sb.Append(c);
+                    }
+                    break;
+            }
+        }
+        return sb.ToString();
+    }
+
     private void HandleDataEndpoint(HttpListenerContext context)
     {
         NameValueCollection queryString = context.Request.QueryString;
         if (context.Request.HttpMethod == "GET")
         {
-            foreach (string key in queryString.AllKeys)
-            {
-                string[] values = queryString.GetValues(key);
-                if (values != null)
-                {
-                    foreach (string value in values)
-                    {
-                        Console.WriteLine($"Key: {key}, Value: {value}");
-                    }
-                }
-            }
+            List<Card> cards = DatabaseSetup.GetAllCards();
 
-            string databaseData = GetDatabaseData();
-            WriteResponse(context, databaseData);
+            // Create JSON manually (without using third-party libraries)
+            StringBuilder sb = new StringBuilder();
+            sb.Append("[");
+            foreach (var card in cards)
+            {
+                sb.Append("{");
+                sb.Append($"\"id\": {card.Id}, ");
+                sb.Append($"\"front\": \"{EscapeJsonString(card.Front)}\", ");
+                sb.Append($"\"back\": \"{EscapeJsonString(card.Back)}\", ");
+                sb.Append("\"tags\": [");
+                foreach (var tag in card.Tags)
+                {
+                    sb.Append($"\"{EscapeJsonString(tag)}\"");
+                    if (tag != card.Tags[card.Tags.Count - 1])
+                        sb.Append(", ");
+                }
+                sb.Append("]");
+                sb.Append("}");
+
+                if (card != cards[cards.Count - 1])
+                    sb.Append(", ");
+            }
+            sb.Append("]");
+
+            // Send JSON response
+            WriteResponse(context, sb.ToString(), "application/json");
         }
         else if (context.Request.HttpMethod == "POST")
         {
@@ -121,18 +181,22 @@ public class HttpServer
         }
         else if (context.Request.HttpMethod == "DELETE")
         {
-            NameValueCollection queryStringParams = context.Request.QueryString;
+            using (var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding))
+            {
+                string requestBody = reader.ReadToEnd();
+                NameValueCollection postParams = System.Web.HttpUtility.ParseQueryString(requestBody);
 
-            if (int.TryParse(queryStringParams["id"], out int id))
-            {
-                DatabaseSetup.DeleteCard(id);
-                context.Response.StatusCode = 200;
-                WriteResponse(context, "<html><body><h1>Card deleted successfully!</h1></body></html>");
-            }
-            else
-            {
-                context.Response.StatusCode = 400;
-                WriteResponse(context, "<html><body><h1>400 - Bad Request. Invalid ID.</h1></body></html>");
+                if (int.TryParse(postParams["id"], out int id))
+                {
+                    DatabaseSetup.DeleteCard(id);
+                    context.Response.StatusCode = 200;
+                    WriteResponse(context, "<html><body><h1>Card deleted successfully!</h1></body></html>");
+                }
+                else
+                {
+                    context.Response.StatusCode = 400;
+                    WriteResponse(context, "<html><body><h1>400 - Bad Request. Invalid ID.</h1></body></html>");
+                }
             }
         }
         else
@@ -155,8 +219,9 @@ public class HttpServer
         }
     }
 
-    private void WriteResponse(HttpListenerContext context, string responseString)
+    private void WriteResponse(HttpListenerContext context, string responseString, string contentType = "text/html")
     {
+        context.Response.ContentType = contentType;
         byte[] buffer = Encoding.UTF8.GetBytes(responseString);
         context.Response.ContentLength64 = buffer.Length;
         Stream output = context.Response.OutputStream;
@@ -169,7 +234,7 @@ public class HttpServer
         switch (context.Request.Url.AbsolutePath)
         {
             case "/":
-                WriteResponse(context, "<html><body><h1>Welcome to the Simple HTTP Server</h1></body></html>");
+                ServeIndexHtml(context);
                 break;
             case "/data":
                 HandleDataEndpoint(context);
@@ -182,37 +247,30 @@ public class HttpServer
                 break;
         }
     }
-    private string GetDatabaseData()
+    private void ServeIndexHtml(HttpListenerContext context)
     {
-        StringBuilder sb = new StringBuilder();
-        sb.Append("<html><body><h1>Data from SQLite Database</h1><ul>");
-
-        using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
+        try
         {
-            conn.Open();
-            string query = "SELECT id, front, back, tags FROM Cards";
-            using (SQLiteCommand cmd = new SQLiteCommand(query, conn))
-            using (SQLiteDataReader reader = cmd.ExecuteReader())
-            {
-                while (reader.Read())
-                {
-                    int id = reader.GetInt32(0);
-                    string front = reader.GetString(1);
-                    string back = reader.GetString(2);
-                    string tags = reader.GetString(3);
+            string projectRoot = Directory.GetCurrentDirectory();
+            string indexPath = Path.Combine(projectRoot, "public", "index.html");
 
-                    sb.Append("<li>")
-                      .Append("<strong>ID:</strong> ").Append(id).Append("<br>")
-                      .Append("<strong>Front:</strong> ").Append(front).Append("<br>")
-                      .Append("<strong>Back:</strong> ").Append(back).Append("<br>")
-                      .Append("<strong>Tags:</strong> ").Append(tags)
-                      .Append("</li><br>");
-                }
+            if (File.Exists(indexPath))
+            {
+                string htmlContent = File.ReadAllText(indexPath);
+                WriteResponse(context, htmlContent);
+            }
+            else
+            {
+                context.Response.StatusCode = 404;
+                WriteResponse(context, "<html><body><h1>404 - File Not Found</h1></body></html>");
             }
         }
-
-        sb.Append("</ul></body></html>");
-        return sb.ToString();
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error serving index.html: " + ex.Message);
+            context.Response.StatusCode = 500;
+            WriteResponse(context, "<html><body><h1>500 - Internal Server Error</h1></body></html>");
+        }
     }
 
     public void Stop()
