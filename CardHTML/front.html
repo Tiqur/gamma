@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Content Example</title>
+</head>
+<body>
+    <div id="content">
+        <p><span id="front">Loading...</span></p>
+        <button onclick="refreshData()">Refresh</button>
+        <p>Tag: {{Tag}}</p>
+    </div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const url = 'http://<ip>:2205/card?tag={{Tag}}';
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                document.getElementById("front").innerHTML = data.front;
+                if (window.MathJax) {
+                    window.MathJax.typesetPromise();
+                }
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        async function seedData() {
+            try {
+                const seedUrl = 'http://<ip>:2205/seed';
+                const seedResponse = await fetch(seedUrl);
+                if (!seedResponse.ok) {
+                    throw new Error('Network response was not ok');
+                }
+            } catch (error) {
+                throw new Error('Seeding error: ' + error.message);
+            }
+        }
+
+        async function refreshData() {
+            try {
+                await seedData();
+                await fetchData();
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function handleError(error) {
+            document.getElementById("front").innerHTML = 'Error: ' + error.message;
+            if (window.MathJax) {
+                window.MathJax.typesetPromise();
+            }
+        }
+
+        fetchData(); // Initial fetch when the page loads
+
+        var injectScript = (src) => {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        };
+
+
+
+
+        (async () => {
+            await injectScript('https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js');
+        })();
+
+    </script>
+
+</body>
+</html>
+
+
