@@ -18,13 +18,16 @@
     <label for="filterContent">Filter by Content:</label>
     <input type="text" id="filterContent" oninput="filterCards()" placeholder="Enter content...">
 
-    <!-- Add new card -->
-    <button id="addNewCardButton" class="add-button" onclick="openAddCardModal()">
-      <svg width="48px" height="48px" viewBox="0 0 24 24" fill="red" xmlns="http://www.w3.org/2000/svg">
-        <path d="M11 8C11 7.44772 11.4477 7 12 7C12.5523 7 13 7.44771 13 8V11H16C16.5523 11 17 11.4477 17 12C17 12.5523 16.5523 13 16 13H13V16C13 16.5523 12.5523 17 12 17C11.4477 17 11 16.5523 11 16V13H8C7.44772 13 7 12.5523 7 12C7 11.4477 7.44771 11 8 11H11V8Z" fill="#4b5263"/>
-        <path fill-rule="evenodd" clip-rule="evenodd" d="M23 4C23 2.34315 21.6569 1 20 1H4C2.34315 1 1 2.34315 1 4V20C1 21.6569 2.34315 23 4 23H20C21.6569 23 23 21.6569 23 20V4ZM21 4C21 3.44772 20.5523 3 20 3H4C3.44772 3 3 3.44772 3 4V20C3 20.5523 3.44772 21 4 21H20C20.5523 21 21 20.5523 21 20V4Z" fill="#4b5263"/>
-      </svg>
-    </button>
+    <!-- Add new card and Generate buttons -->
+    <div class="button-container">
+        <button id="addNewCardButton" class="add-button" onclick="openAddCardModal()">
+            <svg width="48px" height="48px" viewBox="0 0 24 24" fill="red" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 8C11 7.44772 11.4477 7 12 7C12.5523 7 13 7.44771 13 8V11H16C16.5523 11 17 11.4477 17 12C17 12.5523 16.5523 13 16 13H13V16C13 16.5523 12.5523 17 12 17C11.4477 17 11 16.5523 11 16V13H8C7.44772 13 7 12.5523 7 12C7 11.4477 7.44771 11 8 11H11V8Z" fill="#4b5263"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M23 4C23 2.34315 21.6569 1 20 1H4C2.34315 1 1 2.34315 1 4V20C1 21.6569 2.34315 23 4 23H20C21.6569 23 23 21.6569 23 20V4ZM21 4C21 3.44772 20.5523 3 20 3H4C3.44772 3 3 3.44772 3 4V20C3 20.5523 3.44772 21 4 21H20C20.5523 21 21 20.5523 21 20V4Z" fill="#4b5263"/>
+            </svg>
+        </button>
+        <button id="generateCardsButton" class="add-button" onclick="openGenerateModal()">Generate</button>
+    </div>
     
     <table>
         <thead>
@@ -71,6 +74,37 @@
                 <textarea id="newBack" rows="4"></textarea><br>
                 <button type="button" onclick="addCard()">Add Card</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Generate Cards Modal -->
+    <div id="generateModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeGenerateModal()">&times;</span>
+            <form id="generateCardForm" onsubmit="generateCards(event)">
+                <label for="generatePrompt">Prompt:</label>
+                <input type="text" id="generatePrompt" required><br>
+                <label for="generateAmount">Amount:</label>
+                <input type="number" id="generateAmount" required><br>
+                <label for="generateTag">Tag:</label>
+                <input type="text" id="generateTag" required><br>
+                <button type="submit">Generate Cards</button>
+            </form>
+            <div id="generatedCardsTableContainer" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Front</th>
+                            <th>Back</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="generatedCardsTable">
+                        <!-- Generated cards will be dynamically populated here -->
+                    </tbody>
+                </table>
+                <button onclick="regenerateAll()">Regenerate All</button>
+            </div>
         </div>
     </div>
 
