@@ -4,6 +4,8 @@ using System.Net;
 using System.Text;
 using System.Data.SQLite;
 using System.Collections.Specialized;
+using Newtonsoft.Json;
+using System.Net.Http.Headers;
 
 public class HttpServer
 {
@@ -313,7 +315,7 @@ public class HttpServer
         }
     }
 
-    private void ProcessRequest(HttpListenerContext context)
+    private async void ProcessRequest(HttpListenerContext context)
     {
         HttpListenerRequest request = context.Request;
         HttpListenerResponse response = context.Response;
@@ -351,10 +353,156 @@ public class HttpServer
             case "/seed":
                 HandleRegenSeedEndpoint(context);
                 break;
+            case "/generate":
+                await HandleGenerateEndpoint(context);
+                break;
             default:
                 context.Response.StatusCode = 404;
                 WriteResponse(context, "<html><body><h1>404 - Not Found</h1></body></html>");
                 break;
+        }
+    }
+
+    private async Task<string> CallChatGptApi(string prompt, int count)
+    {
+        try
+        {
+            string apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                throw new InvalidOperationException("API key for OpenAI is not set in the environment variables.");
+            }
+
+            string apiUrl = "https://api.openai.com/v1/chat/completions";
+
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+                var requestBody = new
+                {
+                    model = "gpt-3.5-turbo",
+                    messages = new[]
+                    {
+                        new { role = "user", content = "Format flashcards using ```front\n<content>``` and ```back\n<content>```  d" + prompt }
+                    },
+                    temperature = 0.7,
+                    max_tokens = 100,
+                    n = count
+                };
+
+                string jsonRequestBody = JsonConvert.SerializeObject(requestBody);
+                var content = new StringContent(jsonRequestBody, Encoding.UTF8, "application/json");
+
+                // Set Content-Type header on the HttpContent object
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                var response = await client.PostAsync(apiUrl, content);
+                var responseString = await response.Content.ReadAsStringAsync();
+
+                return responseString;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calling OpenAI API: {ex.Message}");
+            throw; // Rethrow the exception to propagate it up
+        }
+    }
+
+
+    private async Task<List<Card>> GenerateCards(string prompt, int count)
+    {
+        try
+        {
+            var responseString = await CallChatGptApi(prompt, count);
+            
+            if (string.IsNullOrEmpty(responseString))
+            {
+                Console.WriteLine("ChatGPT API returned an empty response.");
+                return new List<Card>();
+            }
+
+            Console.WriteLine("API Response: " + responseString);
+            var responseJson = JsonConvert.DeserializeObject<ChatGptResponse>(responseString);
+
+            if (responseJson == null || responseJson.choices == null)
+            {
+                Console.WriteLine("Unable to deserialize ChatGPT API response.");
+                return new List<Card>();
+            }
+
+            List<Card> generatedCards = new List<Card>();
+            foreach (var choice in responseJson.choices)
+            {
+                generatedCards.Add(new Card
+                {
+                    Front = choice.text,
+                    Back = "Generated Back Content",  // Modify based on your needs
+                    Tag = "Generated"
+                });
+            }
+
+            return generatedCards;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating cards: {ex.Message}");
+            return new List<Card>();
+        }
+    }
+
+    private class ChatGptResponse
+    {
+        public List<Choice> choices { get; set; }
+
+        public class Choice
+        {
+            public string text { get; set; }
+        }
+    }
+    
+    private async Task HandleGenerateEndpoint(HttpListenerContext context)
+    {
+        if (context.Request.HttpMethod == "GET")
+        {
+            string prompt = context.Request.QueryString["prompt"];
+            string countString = context.Request.QueryString["count"];
+
+            if (!string.IsNullOrEmpty(prompt) && int.TryParse(countString, out int count))
+            {
+                List<Card> generatedCards = await GenerateCards(prompt, count);
+
+                // Create JSON for the generated cards
+                StringBuilder sb = new StringBuilder();
+                sb.Append("[");
+                foreach (var card in generatedCards)
+                {
+                    sb.Append("{");
+                    sb.Append($"\"id\": 0, ");  // No ID since they are not in the DB yet
+                    sb.Append($"\"front\": \"{EscapeJsonString(card.Front)}\", ");
+                    sb.Append($"\"back\": \"{EscapeJsonString(card.Back)}\", ");
+                    sb.Append($"\"tag\": \"{EscapeJsonString(card.Tag)}\" ");
+                    sb.Append("}");
+
+                    if (card != generatedCards[generatedCards.Count - 1])
+                        sb.Append(", ");
+                }
+                sb.Append("]");
+
+                // Send JSON response
+                WriteResponse(context, sb.ToString(), "application/json");
+            }
+            else
+            {
+                context.Response.StatusCode = 400;
+                WriteResponse(context, "<html><body><h1>400 - Bad Request. Prompt and count parameters are required.</h1></body></html>");
+            }
+        }
+        else
+        {
+            context.Response.StatusCode = 405;
+            WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
         }
     }
 
