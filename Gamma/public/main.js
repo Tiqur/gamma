@@ -156,16 +156,19 @@ function closeAddCardModal() {
     modal.style.display = 'none';
 }
 
-function addCard() {
+function addNewCard() {
     const form = document.getElementById('addCardForm');
-    const newTag = form.elements['newTag'].value;
-    const newFront = form.elements['newFront'].value;
-    const newBack = form.elements['newBack'].value;
+    const tag = form.elements['newTag'].value;
+    const front = form.elements['newFront'].value;
+    const back = form.elements['newBack'].value;
+    addCardToDB(front, back, tag);
+}
 
+function addCardToDB(front, back, tag) {
     fetch('/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag: newTag, front: newFront, back: newBack })
+        body: JSON.stringify({ tag: tag, front: front, back: back })
     })
         .then(response => {
             if (!response.ok) throw new Error('Failed to add card');
@@ -178,6 +181,22 @@ function addCard() {
             showSnackbar('Failed to add card');
         });
 }
+
+function addAllGeneratedCards() {
+    const generatedCardsTable = document.getElementById('generatedCardsTable');
+    const rows = generatedCardsTable.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const front = row.cells[0].textContent;
+        const back = row.cells[1].textContent;
+        const tag = document.getElementById('generateTag').value; // Get the tag from the input field
+
+        addCardToDB(front, back, tag);
+    });
+
+    closeGenerateModal();
+}
+
 
 function openGenerateModal() {
     const modal = document.getElementById('generateModal');
