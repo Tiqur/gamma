@@ -1,0 +1,188 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box; /* Include padding and border in the element's total width */
+}
+
+/* OneDark Theme */
+body {
+    background-color: #282c34;
+    color: #abb2bf;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 20px;
+}
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-bottom: 20px;
+}
+th, td {
+    border: 1px solid #4b5263;
+    padding: 8px;
+    text-align: left;
+    word-wrap: break-word;
+    max-width: 300px;
+}
+th { 
+    background-color: #3e4451; 
+    color: #abb2bf;
+}
+form label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+input[type="text"] {
+    padding: 10px;
+    margin-top: 5px;
+    font-size: 14px;
+    border: 1px solid #4b5263;
+    background-color: #3e4451;
+    color: #abb2bf;
+}
+form textarea {
+    padding: 10px;
+    margin-top: 5px;
+    font-size: 14px;
+    border: 1px solid #4b5263;
+    background-color: #3e4451;
+    color: #abb2bf;
+    width: 100%;
+    min-height: 100px;
+    resize: vertical;
+}
+form button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    background-color: #61afef;
+    color: #282c34;
+    border: none;
+    cursor: pointer;
+}
+button {
+    padding: 4px 8px;
+    background-color: #61afef;
+    color: #282c34;
+    border: none;
+    cursor: pointer;
+    color: #282c34;
+}
+form button:hover {
+    background-color: #528bff;
+}
+
+/* Update button (blue) */
+button.update-button {
+    background-color: #61afef;
+    color: #282c34;
+}
+
+/* Delete button (red) */
+button.delete-button {
+    background-color: #e06c75;
+    color: #282c34;
+}
+
+/* Add button (green) */
+button.add-button {
+    background-color: #98c379;
+    color: #282c34;
+}
+
+/* Modal Styling */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: #282c34;
+    margin: 5% auto; /* 5% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less */
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.snackbar-container {
+    position: fixed;
+    z-index: 1;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    width: 100%; /* Ensures full width stacking */
+    display: flex;
+    flex-direction: column-reverse; /* Stack messages from bottom to top */
+    align-items: center;
+}
+
+.snackbar {
+    visibility: hidden;
+    min-width: 250px;
+    margin: 10px; /* Add margin between messages */
+    background-color: #61afef;
+    color: #282c34;
+    text-align: center;
+    border-radius: 2px;
+    padding: 16px;
+    position: relative; /* Relative to snackbar-container */
+    animation: slideIn 0.5s ease-in-out, fadeOut 0.5s ease-in-out 2.5s; /* Slide in and fade out animation */
+}
+
+#filterTag {
+  margin-bottom: 1.5rem;
+  margin-right: 2rem;
+}
+
+#addNewCardButton {
+  float: right;
+  background: none;
+}
+
+button.add-button {
+    background-color: #3e4451;
+    color: #abb2bf;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+button.add-button svg {
+    margin-right: 0.5rem;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+

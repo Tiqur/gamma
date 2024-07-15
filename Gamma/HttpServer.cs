@@ -196,6 +196,7 @@ public class HttpServer
             WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
         }
     }
+
     private void HandleRegenSeedEndpoint(HttpListenerContext context)
     {
         if (context.Request.HttpMethod == "GET")
@@ -270,6 +271,43 @@ public class HttpServer
             WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
         }
     }
+
+    private void ServeIndexHtml(HttpListenerContext context)
+    {
+        ServeStaticFile(context, "index.html", "text/html");
+    }
+
+    private void ServeMainCss(HttpListenerContext context)
+    {
+        ServeStaticFile(context, "main.css", "text/css");
+    }
+
+    private void ServeStaticFile(HttpListenerContext context, string filename, string contentType)
+    {
+        try
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string filePath = Path.Combine(projectRoot, "public", filename);
+
+            if (File.Exists(filePath))
+            {
+                string fileContent = File.ReadAllText(filePath);
+                WriteResponse(context, fileContent, contentType);
+            }
+            else
+            {
+                context.Response.StatusCode = 404;
+                WriteResponse(context, "<html><body><h1>404 - File Not Found</h1></body></html>");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error serving {filename}: " + ex.Message);
+            context.Response.StatusCode = 500;
+            WriteResponse(context, "<html><body><h1>500 - Internal Server Error</h1></body></html>");
+        }
+    }
+
     private void ProcessRequest(HttpListenerContext context)
     {
         HttpListenerRequest request = context.Request;
@@ -283,16 +321,18 @@ public class HttpServer
         // Handle OPTIONS requests (CORS preflight)
         if (request.HttpMethod == "OPTIONS")
         {
-          response.StatusCode = (int)HttpStatusCode.OK;
-          response.Close();
-          return;
+            response.StatusCode = (int)HttpStatusCode.OK;
+            response.Close();
+            return;
         }
-
 
         switch (context.Request.Url.AbsolutePath)
         {
             case "/":
                 ServeIndexHtml(context);
+                break;
+            case "/main.css":
+                ServeMainCss(context);
                 break;
             case "/card":
                 HandleCardEndpoint(context);
@@ -304,33 +344,9 @@ public class HttpServer
                 HandleRegenSeedEndpoint(context);
                 break;
             default:
+                context.Response.StatusCode = 404;
                 WriteResponse(context, "<html><body><h1>404 - Not Found</h1></body></html>");
                 break;
-        }
-    }
-    private void ServeIndexHtml(HttpListenerContext context)
-    {
-        try
-        {
-            string projectRoot = Directory.GetCurrentDirectory();
-            string indexPath = Path.Combine(projectRoot, "public", "index.html");
-
-            if (File.Exists(indexPath))
-            {
-                string htmlContent = File.ReadAllText(indexPath);
-                WriteResponse(context, htmlContent);
-            }
-            else
-            {
-                context.Response.StatusCode = 404;
-                WriteResponse(context, "<html><body><h1>404 - File Not Found</h1></body></html>");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error serving index.html: " + ex.Message);
-            context.Response.StatusCode = 500;
-            WriteResponse(context, "<html><body><h1>500 - Internal Server Error</h1></body></html>");
         }
     }
 
