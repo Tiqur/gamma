@@ -387,7 +387,18 @@ public class HttpServer
                     model = "gpt-3.5-turbo",
                     messages = new[]
                     {
-                        new { role = "user", content = "Format flashcards using ```front\n<content>``` and ```back\n<content>```" + prompt }
+                      new {
+                        role = "user",
+                        content =
+                        @"Using this prompt:" + prompt +  @"generate a math problem and answer flashcard in the format:
+                        ```front
+                        <InputQuestion>: <\[ tex equation ]\>
+                        ```
+
+                        ```back
+                        <\[ tex equation ]\>
+                        ```"
+                      }
                     },
                     temperature = 0.7,
                     max_tokens = 100,
