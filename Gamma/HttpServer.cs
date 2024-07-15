@@ -282,6 +282,11 @@ public class HttpServer
         ServeStaticFile(context, "main.css", "text/css");
     }
 
+    private void ServeMainJs(HttpListenerContext context)
+    {
+        ServeStaticFile(context, "main.js", "text/javascript");
+    }
+
     private void ServeStaticFile(HttpListenerContext context, string filename, string contentType)
     {
         try
@@ -333,6 +338,9 @@ public class HttpServer
                 break;
             case "/main.css":
                 ServeMainCss(context);
+                break;
+            case "/main.js":
+                ServeMainJs(context);
                 break;
             case "/card":
                 HandleCardEndpoint(context);
