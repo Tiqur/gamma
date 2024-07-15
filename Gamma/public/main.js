@@ -60,12 +60,15 @@ function filterCards() {
 
 function openModal(id, front, back, tag) {
     const modal = document.getElementById('updateModal');
-    const form = document.getElementById('updateCardForm');
-    form.elements['updateTag'].value = tag;
-    form.elements['updateFront'].value = front;
-    form.elements['updateBack'].value = back;
-    modal.dataset.id = id; // Store the card id in modal's dataset
     modal.style.display = 'block';
+
+    // Populate fields with current card data
+    document.getElementById('updateFront').value = front;
+    document.getElementById('updateBack').value = back;
+    document.getElementById('updateTag').value = tag;
+
+    // Store the ID in a hidden field or variable
+    modal.dataset.cardId = id;
 }
 
 function closeModal() {
@@ -74,86 +77,98 @@ function closeModal() {
 }
 
 function submitUpdate() {
-    const modal = document.getElementById('updateModal');
-    const id = modal.dataset.id;
-    const form = document.getElementById('updateCardForm');
-    const updatedTag = form.elements['updateTag'].value;
-    const updatedFront = form.elements['updateFront'].value;
-    const updatedBack = form.elements['updateBack'].value;
+    const id = document.getElementById('updateModal').dataset.cardId;
+    const front = document.getElementById('updateFront').value;
+    const back = document.getElementById('updateBack').value;
+    const tag = document.getElementById('updateTag').value;
+    const data = `id=${id}&front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tag=${encodeURIComponent(tag)}`;
 
-    fetch(`/update/${id}`, {
+    fetch('/data', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag: updatedTag, front: updatedFront, back: updatedBack })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data
     })
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to update card');
+    .then(response => {
+        if (response.status === 200) {
+            showSnackbar('Card updated successfully!');
             closeModal();
-            fetchCards(); // Refresh the card list
-            showSnackbar('Card updated successfully');
-        })
-        .catch(error => {
-            console.error('Error updating card:', error);
-            showSnackbar('Failed to update card');
-        });
+            fetchCards();
+        } else {
+            showSnackbar('Error updating card', '#e06c75');
+        }
+    })
+    .catch(error => console.error('Error updating card:', error));
 }
 
 function deleteCard(id) {
-    const modal = document.getElementById('confirmationModal');
-    modal.style.display = 'block';
-    modal.dataset.id = id; // Store the card id in modal's dataset
+    const confirmationModal = document.getElementById('confirmationModal');
+    confirmationModal.style.display = 'block';
+
+    // Store the ID in a hidden field or variable
+    confirmationModal.dataset.cardId = id;
 }
 
 function confirmDelete() {
-    const modal = document.getElementById('confirmationModal');
-    const id = modal.dataset.id;
+    const id = document.getElementById('confirmationModal').dataset.cardId;
+    const data = `id=${id}`;
 
-    fetch(`/delete/${id}`, {
-        method: 'DELETE'
+    fetch('/data', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data
     })
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to delete card');
-            closeConfirmation();
-            fetchCards(); // Refresh the card list
-            showSnackbar('Card deleted successfully');
-        })
-        .catch(error => {
-            console.error('Error deleting card:', error);
-            showSnackbar('Failed to delete card');
-        });
+    .then(response => {
+        if (response.status === 200) {
+            showSnackbar('Card deleted successfully!');
+            fetchCards();
+        } else {
+            showSnackbar('Error deleting card', '#e06c75');
+        }
+    })
+    .catch(error => console.error('Error deleting card:', error));
+
+    closeConfirmation(); // Close the confirmation modal after deleting
 }
 
 function closeConfirmation() {
-    const modal = document.getElementById('confirmationModal');
-    modal.style.display = 'none';
+    const confirmationModal = document.getElementById('confirmationModal');
+    confirmationModal.style.display = 'none';
 }
 
-function showSnackbar(message) {
+function showSnackbar(message, color = '#61afef') {
     const snackbarContainer = document.getElementById('snackbarContainer');
+    
+    // Create snackbar element
     const snackbar = document.createElement('div');
     snackbar.className = 'snackbar';
+    snackbar.style.backgroundColor = color;
     snackbar.textContent = message;
+
+    // Append snackbar to container
     snackbarContainer.appendChild(snackbar);
 
+    // Trigger slide-in animation
     setTimeout(() => {
-        snackbar.classList.add('show');
-        setTimeout(() => {
-            snackbar.classList.remove('show');
-            setTimeout(() => {
-                snackbarContainer.removeChild(snackbar);
-            }, 300);
-        }, 3000);
-    }, 100);
+        snackbar.style.visibility = 'visible';
+        snackbar.style.animation = 'slideIn 0.5s ease-in-out, fadeOut 0.5s ease-in-out 2.5s'; // Reset animation
+    }, 100); // Delay to ensure visibility change is applied after appending
+
+    // Automatically remove snackbar after animation completes
+    setTimeout(() => {
+        snackbar.remove();
+    }, 3000);
 }
 
+// Function to open the add card modal
 function openAddCardModal() {
-    const modal = document.getElementById('addCardModal');
-    modal.style.display = 'block';
+    const addCardModal = document.getElementById('addCardModal');
+    addCardModal.style.display = 'block';
 }
 
+// Function to close the add card modal
 function closeAddCardModal() {
-    const modal = document.getElementById('addCardModal');
-    modal.style.display = 'none';
+    const addCardModal = document.getElementById('addCardModal');
+    addCardModal.style.display = 'none';
 }
 
 function addNewCard() {
@@ -165,21 +180,21 @@ function addNewCard() {
 }
 
 function addCardToDB(front, back, tag) {
-    fetch('/add', {
+    fetch('/data', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag: tag, front: front, back: back })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `front=${encodeURIComponent(front)}&back=${encodeURIComponent(back)}&tag=${encodeURIComponent(tag)}`
     })
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to add card');
-            closeAddCardModal();
-            fetchCards(); // Refresh the card list
-            showSnackbar('Card added successfully');
-        })
-        .catch(error => {
-            console.error('Error adding card:', error);
-            showSnackbar('Failed to add card');
-        });
+    .then(response => {
+        if (response.status === 200) {
+            showSnackbar('Card added successfully!');
+            closeAddCardModal(); // Close modal after adding card
+            fetchCards(); // Refresh cards table
+        } else {
+            showSnackbar('Error adding card', '#e06c75');
+        }
+    })
+    .catch(error => console.error('Error adding card:', error));
 }
 
 function addAllGeneratedCards() {
