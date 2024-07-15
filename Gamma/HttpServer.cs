@@ -6,6 +6,9 @@ using System.Data.SQLite;
 using System.Collections.Specialized;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class HttpServer
 {
@@ -384,7 +387,7 @@ public class HttpServer
                     model = "gpt-3.5-turbo",
                     messages = new[]
                     {
-                        new { role = "user", content = "Format flashcards using ```front\n<content>``` and ```back\n<content>```  d" + prompt }
+                        new { role = "user", content = "Format flashcards using ```front\n<content>``` and ```back\n<content>```" + prompt }
                     },
                     temperature = 0.7,
                     max_tokens = 100,
@@ -411,12 +414,12 @@ public class HttpServer
     }
 
 
-    private async Task<List<Card>> GenerateCards(string prompt, int count)
+    private async Task<List<Card>> GenerateCards(string prompt, int count, string tag)
     {
         try
         {
             var responseString = await CallChatGptApi(prompt, count);
-            
+
             if (string.IsNullOrEmpty(responseString))
             {
                 Console.WriteLine("ChatGPT API returned an empty response.");
@@ -424,23 +427,49 @@ public class HttpServer
             }
 
             Console.WriteLine("API Response: " + responseString);
-            var responseJson = JsonConvert.DeserializeObject<ChatGptResponse>(responseString);
 
-            if (responseJson == null || responseJson.choices == null)
+            var responseJson = JsonConvert.DeserializeObject<JObject>(responseString);
+            var choicesArray = responseJson["choices"];
+
+            if (choicesArray == null)
             {
-                Console.WriteLine("Unable to deserialize ChatGPT API response.");
+                Console.WriteLine("No 'choices' array found in the API response.");
                 return new List<Card>();
             }
 
             List<Card> generatedCards = new List<Card>();
-            foreach (var choice in responseJson.choices)
+
+            foreach (var choice in choicesArray)
             {
+                var message = choice["message"];
+                if (message == null)
+                {
+                    Console.WriteLine("No 'message' object found in the choice.");
+                    continue;
+                }
+
+                var content = message["content"];
+                if (content == null)
+                {
+                    Console.WriteLine("No 'content' found in the message.");
+                    continue;
+                }
+
+                string front = ExtractContent(content.ToString(), "front");
+                string back = ExtractContent(content.ToString(), "back");
+
                 generatedCards.Add(new Card
                 {
-                    Front = choice.text,
-                    Back = "Generated Back Content",  // Modify based on your needs
-                    Tag = "Generated"
+                    Front = front,
+                    Back = back,
+                    Tag = tag
                 });
+
+                // Break if we've reached the requested count
+                if (generatedCards.Count >= count)
+                {
+                    break;
+                }
             }
 
             return generatedCards;
@@ -452,52 +481,65 @@ public class HttpServer
         }
     }
 
-    private class ChatGptResponse
+    private string ExtractContent(string text, string section)
     {
-        public List<Choice> choices { get; set; }
+        string pattern = $"{section}\n(.*)";
+        Match match = Regex.Match(text, pattern);
 
-        public class Choice
+        if (match.Success)
         {
-            public string text { get; set; }
+            return match.Groups[1].Value.Trim();
         }
+
+        // Handle case where section is not found
+        Console.WriteLine($"Error extracting {section} content from text: {text}");
+        return "Content Not Found";
     }
-    
+
+
     private async Task HandleGenerateEndpoint(HttpListenerContext context)
     {
         if (context.Request.HttpMethod == "GET")
         {
             string prompt = context.Request.QueryString["prompt"];
             string countString = context.Request.QueryString["count"];
+            string tag = context.Request.QueryString["tag"];
 
-            if (!string.IsNullOrEmpty(prompt) && int.TryParse(countString, out int count))
+            if (!string.IsNullOrEmpty(countString) && int.TryParse(countString, out int count))
             {
-                List<Card> generatedCards = await GenerateCards(prompt, count);
-
-                // Create JSON for the generated cards
-                StringBuilder sb = new StringBuilder();
-                sb.Append("[");
-                foreach (var card in generatedCards)
+                if (!string.IsNullOrEmpty(prompt) || !string.IsNullOrEmpty(tag))
                 {
-                    sb.Append("{");
-                    sb.Append($"\"id\": 0, ");  // No ID since they are not in the DB yet
-                    sb.Append($"\"front\": \"{EscapeJsonString(card.Front)}\", ");
-                    sb.Append($"\"back\": \"{EscapeJsonString(card.Back)}\", ");
-                    sb.Append($"\"tag\": \"{EscapeJsonString(card.Tag)}\" ");
-                    sb.Append("}");
+                    List<Card> generatedCards = await GenerateCards(prompt, count, tag);
 
-                    if (card != generatedCards[generatedCards.Count - 1])
-                        sb.Append(", ");
+                    if (generatedCards != null && generatedCards.Count > 0)
+                    {
+                        // Create JSON for the generated cards
+                        StringBuilder sb = new StringBuilder();
+                        sb.Append("[");
+                        foreach (var card in generatedCards)
+                        {
+                            sb.Append("{");
+                            sb.Append($"\"id\": 0, ");  // No ID since they are not in the DB yet
+                            sb.Append($"\"front\": \"{EscapeJsonString(card.Front)}\", ");
+                            sb.Append($"\"back\": \"{EscapeJsonString(card.Back)}\", ");
+                            sb.Append($"\"tag\": {card.Tag} ");
+                            sb.Append("}");
+
+                            if (card != generatedCards[generatedCards.Count - 1])
+                                sb.Append(", ");
+                        }
+                        sb.Append("]");
+
+                        // Send JSON response
+                        WriteResponse(context, sb.ToString(), "application/json");
+                        return;
+                    }
                 }
-                sb.Append("]");
+            }
 
-                // Send JSON response
-                WriteResponse(context, sb.ToString(), "application/json");
-            }
-            else
-            {
-                context.Response.StatusCode = 400;
-                WriteResponse(context, "<html><body><h1>400 - Bad Request. Prompt and count parameters are required.</h1></body></html>");
-            }
+            // If any conditions fail, return a 400 Bad Request
+            context.Response.StatusCode = 400;
+            WriteResponse(context, "<html><body><h1>400 - Bad Request. Prompt, tag, and count parameters are required.</h1></body></html>");
         }
         else
         {
@@ -505,6 +547,7 @@ public class HttpServer
             WriteResponse(context, "<html><body><h1>405 - Method Not Allowed</h1></body></html>");
         }
     }
+
 
     public void Stop()
     {
