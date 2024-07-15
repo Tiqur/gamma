@@ -239,26 +239,25 @@ function regenerateCard(cardId, prompt, amount, tag) {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
     })
-        .then(response => response.json())
-        .then(data => {
-            const generatedCardsTable = document.getElementById('generatedCardsTable');
-            const row = generatedCardsTable.querySelector(`tr[data-id='${cardId}']`);
-            if (row) {
-                row.innerHTML = `
-                    <td>${data[0].front}</td>
-                    <td>${data[0].back}</td>
-                    <td><button onclick="regenerateCard(${data[0].id}, '${prompt}', 1, '${tag}')">Regenerate</button></td>
-                `;
-            } else {
-                console.error(`Row with data-id '${cardId}' not found.`);
-            }
-        })
-        .catch(error => {
-            console.error('Error regenerating card:', error);
-            showSnackbar('Failed to regenerate card');
-        });
+    .then(response => response.json())
+    .then(data => {
+        const generatedCardsTable = document.getElementById('generatedCardsTable');
+        const row = generatedCardsTable.querySelector(`tr[data-id='${cardId}']`);
+        if (row) {
+            row.innerHTML = `
+                <td>${data[0].front}</td>
+                <td>${data[0].back}</td>
+                <td><button onclick="regenerateCard(${cardId}, '${prompt}', ${amount}, '${tag}')">Regenerate</button></td>
+            `;
+        } else {
+            console.error(`Row with data-id '${cardId}' not found.`);
+        }
+    })
+    .catch(error => {
+        console.error('Error regenerating card:', error);
+        showSnackbar('Failed to regenerate card');
+    });
 }
-
 
 function regenerateAll() {
     const rows = document.querySelectorAll('#generatedCardsTable tr');
@@ -267,7 +266,7 @@ function regenerateAll() {
         const prompt = row.dataset.prompt;
         const amount = row.dataset.amount;
         const tag = row.dataset.tag;
-        regenerateCard(cardId, prompt, amount, tag);
+        regenerateCard(cardId, prompt, amount, tag); // Call regenerateCard with current row data
     });
 }
 
