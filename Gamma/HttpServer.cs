@@ -494,36 +494,36 @@ public class HttpServer
         }
     }
 
-    private List<string> SplitIntoCards(string content)
+private List<string> SplitIntoCards(string content)
+{
+    var cards = new List<string>();
+    var cardContents = Regex.Split(content, @"(?=```front)", RegexOptions.Singleline);
+
+    foreach (var cardContent in cardContents)
     {
-        var cards = new List<string>();
-        var cardContents = Regex.Split(content, @"(?<=```back\n.*\n```)", RegexOptions.Singleline);
-
-        foreach (var cardContent in cardContents)
+        if (!string.IsNullOrWhiteSpace(cardContent))
         {
-            if (!string.IsNullOrWhiteSpace(cardContent))
-            {
-                cards.Add(cardContent.Trim());
-            }
+            cards.Add(cardContent.Trim());
         }
-
-        return cards;
     }
 
-    private string ExtractContent(string text, string section)
+    return cards;
+}
+
+private string ExtractContent(string text, string section)
+{
+    string pattern = $@"```{section}\s*\n([\s\S]*?)```";
+    Match match = Regex.Match(text, pattern);
+
+    if (match.Success)
     {
-        string pattern = $"{section}\n(.*)";
-        Match match = Regex.Match(text, pattern);
-
-        if (match.Success)
-        {
-            return match.Groups[1].Value.Trim();
-        }
-
-        // Handle case where section is not found
-        Console.WriteLine($"Error extracting {section} content from text: {text}");
-        return "Content Not Found";
+        return match.Groups[1].Value.Trim();
     }
+
+    // Handle case where section is not found
+    Console.WriteLine($"Error extracting {section} content from text: {text}");
+    return "Content Not Found";
+}
 
 
     private async Task HandleGenerateEndpoint(HttpListenerContext context)
