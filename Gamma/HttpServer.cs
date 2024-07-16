@@ -235,7 +235,7 @@ public class HttpServer
         if (context.Request.HttpMethod == "GET")
         {
             string tag = context.Request.QueryString["tag"];
-            
+
             if (!string.IsNullOrEmpty(tag))
             {
                 List<Card> cards = DatabaseSetup.GetCardsByTag(tag);
@@ -390,9 +390,9 @@ public class HttpServer
                       new {
                         role = "user",
                         content =
-                        @"Using this prompt:" + prompt +  @"generate a math problem and answer flashcard in the format:
-                        ```front
-                        <InputQuestion>: <\[ tex equation ]\>
+                        $"Using this prompt: \"{prompt}\" generate {count} math flashcards in this format:\n" +
+                        @"```front
+                        <Instructions>: <\[ tex equation ]\>
                         ```
 
                         ```back
@@ -401,8 +401,8 @@ public class HttpServer
                       }
                     },
                     temperature = 0.7,
-                    max_tokens = 100,
-                    n = count
+                    max_tokens = 100*count,
+                    n = 1
                 };
 
                 string jsonRequestBody = JsonConvert.SerializeObject(requestBody);
@@ -466,20 +466,22 @@ public class HttpServer
                     continue;
                 }
 
-                string front = ExtractContent(content.ToString(), "front");
-                string back = ExtractContent(content.ToString(), "back");
+                string contentString = content.ToString();
 
-                generatedCards.Add(new Card
-                {
-                    Front = front,
-                    Back = back,
-                    Tag = tag
-                });
+                // Split the content into multiple cards
+                var cardsContent = SplitIntoCards(contentString);
 
-                // Break if we've reached the requested count
-                if (generatedCards.Count >= count)
+                foreach (var cardContent in cardsContent)
                 {
-                    break;
+                    string front = ExtractContent(cardContent, "front");
+                    string back = ExtractContent(cardContent, "back");
+
+                    generatedCards.Add(new Card
+                    {
+                        Front = front,
+                        Back = back,
+                        Tag = tag
+                    });
                 }
             }
 
@@ -490,6 +492,22 @@ public class HttpServer
             Console.WriteLine($"Error generating cards: {ex.Message}");
             return new List<Card>();
         }
+    }
+
+    private List<string> SplitIntoCards(string content)
+    {
+        var cards = new List<string>();
+        var cardContents = Regex.Split(content, @"(?<=```back\n.*\n```)", RegexOptions.Singleline);
+
+        foreach (var cardContent in cardContents)
+        {
+            if (!string.IsNullOrWhiteSpace(cardContent))
+            {
+                cards.Add(cardContent.Trim());
+            }
+        }
+
+        return cards;
     }
 
     private string ExtractContent(string text, string section)

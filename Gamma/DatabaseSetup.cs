@@ -36,10 +36,10 @@ public class DatabaseSetup
             int front = random.Next(1, 10000000);
             int back = random.Next(1, 10000000);
 
-            string frontText = $"Front {i+1}";
-            string backText = $"Back {i+1}";
+            string frontText = $"Front {i + 1}";
+            string backText = $"Back {i + 1}";
 
-            AddCard(frontText, backText, $"Tag{i%10}");
+            AddCard(frontText, backText, $"Tag{i % 10}");
         }
     }
 
