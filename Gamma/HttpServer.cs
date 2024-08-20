@@ -318,54 +318,98 @@ public class HttpServer
         }
     }
 
-    private async void ProcessRequest(HttpListenerContext context)
+private async void ProcessRequest(HttpListenerContext context)
+{
+    // Check for basic authorization
+    if (!IsAuthorized(context.Request))
     {
-        HttpListenerRequest request = context.Request;
-        HttpListenerResponse response = context.Response;
+        context.Response.StatusCode = 401;
+        context.Response.AddHeader("WWW-Authenticate", "Basic realm=\"MyServer\"");
+        WriteResponse(context, "<html><body><h1>401 - Unauthorized</h1></body></html>");
+        return;
+    }
 
-        // Set CORS headers
-        response.AddHeader("Access-Control-Allow-Origin", "*");
-        response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    HttpListenerRequest request = context.Request;
+    HttpListenerResponse response = context.Response;
 
-        // Handle OPTIONS requests (CORS preflight)
-        if (request.HttpMethod == "OPTIONS")
+    // Set CORS headers
+    response.AddHeader("Access-Control-Allow-Origin", "*");
+    response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    // Handle OPTIONS requests (CORS preflight)
+    if (request.HttpMethod == "OPTIONS")
+    {
+        response.StatusCode = (int)HttpStatusCode.OK;
+        response.Close();
+        return;
+    }
+
+    switch (context.Request.Url.AbsolutePath)
+    {
+        case "/":
+            ServeIndexHtml(context);
+            break;
+        case "/main.css":
+            ServeMainCss(context);
+            break;
+        case "/main.js":
+            ServeMainJs(context);
+            break;
+        case "/card":
+            HandleCardEndpoint(context);
+            break;
+        case "/data":
+            HandleDataEndpoint(context);
+            break;
+        case "/seed":
+            HandleRegenSeedEndpoint(context);
+            break;
+        case "/generate":
+            await HandleGenerateEndpoint(context);
+            break;
+        default:
+            context.Response.StatusCode = 404;
+            WriteResponse(context, "<html><body><h1>404 - Not Found</h1></body></html>");
+            break;
+    }
+}
+
+private bool IsAuthorized(HttpListenerRequest request)
+{
+    if (!request.Headers.AllKeys.Contains("Authorization"))
+    {
+        return false;
+    }
+
+    string authHeader = request.Headers["Authorization"];
+    if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+    {
+        string encodedCredentials = authHeader.Substring("Basic ".Length).Trim();
+        string credentials = Encoding.UTF8.GetString(Convert.FromBase64String(encodedCredentials));
+        string[] parts = credentials.Split(':');
+
+        if (parts.Length == 2)
         {
-            response.StatusCode = (int)HttpStatusCode.OK;
-            response.Close();
-            return;
-        }
+            string username = parts[0];
+            string password = parts[1];
 
-        switch (context.Request.Url.AbsolutePath)
-        {
-            case "/":
-                ServeIndexHtml(context);
-                break;
-            case "/main.css":
-                ServeMainCss(context);
-                break;
-            case "/main.js":
-                ServeMainJs(context);
-                break;
-            case "/card":
-                HandleCardEndpoint(context);
-                break;
-            case "/data":
-                HandleDataEndpoint(context);
-                break;
-            case "/seed":
-                HandleRegenSeedEndpoint(context);
-                break;
-            case "/generate":
-                await HandleGenerateEndpoint(context);
-                break;
-            default:
-                context.Response.StatusCode = 404;
-                WriteResponse(context, "<html><body><h1>404 - Not Found</h1></body></html>");
-                break;
+            // Retrieve the expected username and password from environment variables
+            string expectedUsername = Environment.GetEnvironmentVariable("HTTP_SERVER_USERNAME");
+            string expectedPassword = Environment.GetEnvironmentVariable("HTTP_SERVER_PASSWORD");
+
+            // Check if the environment variables are set
+            if (string.IsNullOrEmpty(expectedUsername) || string.IsNullOrEmpty(expectedPassword))
+            {
+                throw new InvalidOperationException("Environment variables for username or password are not set.");
+            }
+
+            return username == expectedUsername && password == expectedPassword;
         }
     }
 
+    return false;
+}
     private async Task<string> CallChatGptApi(string prompt, int count)
     {
         try
